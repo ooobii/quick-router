@@ -3,3 +3,5 @@ vendor/*
 
 /test.php
 /.htaccess
+/.vscode
+/index.php
