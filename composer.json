@@ -1,0 +1,35 @@
+{
+    "name": "ooobii/quick-router",
+    "description": "A quick & easy library for routing incoming HTTP requests with PHP.",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "ooobii\\QuickRouter\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Matthew Wendel (ooobii)",
+            "email": "matthewwendel77@gmail.com",
+            "role": "Owner"
+        }
+    ],
+    "scripts": {
+        
+        "post-install-cmd": [
+            "ooobii\\QuickRouter\\Helpers\\SetupHtaccess::createHtaccessFile"
+        ],
+        "post-update-cmd": [
+            "ooobii\\QuickRouter\\Helpers\\SetupHtaccess::createHtaccessFile"
+        ]
+
+    },
+    "require": {
+        "php": ">=7.3.0"
+    },
+    "require-dev": {
+        "php": ">=7.3.0",
+        "phpunit/phpunit": "^7.5.0"
+    }
+}
