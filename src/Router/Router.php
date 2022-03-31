@@ -73,25 +73,28 @@ class Router {
         if(!$this->isCLI()) {
 
             //use server variables to get the request type and URI.
-            $this->_inputUri = rtrim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH), '/');
+            $this->_inputUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
         } else {
 
             //if no parameter was supplied, treat as root request.
             if(!isset($_SERVER['argv'][1])) {
-                $this->_inputUri = rtrim($this->_rootUri, '/');
+                $this->_inputUri = $this->_rootUri;
 
             } else {
 
                 //otherwise, use first CLI parameter as request.
-                $this->_inputUri = rtrim(strtolower($_SERVER['argv'][1]), '/');
+                $this->_inputUri = strtolower($_SERVER['argv'][1]);
 
             }
+
         }
 
         //if we're fetching the root URL of the router, append a slash to the end of the request URL.
         if($this->_inputUri === $this->_rootUri) {
             $this->_inputUri = $this->_rootUri . '/';
+        } else {
+            $this->_inputUri = rtrim($this->_inputUri, '/');
         }
 
     }
@@ -112,6 +115,10 @@ class Router {
      */
     public function root() {
         return $this->_rootUri;
+    }
+
+    public function inputUri() {
+        return $this->_inputUri;
     }
 
     /**
@@ -190,7 +197,7 @@ class Router {
      * 
      * @return bool
      */
-    public function alwaysReturnJson() {
+    public function alwaysReturnsJSON() {
         return $this->_alwaysJson;
     }
 
@@ -234,7 +241,7 @@ class Router {
                 $output = $route($this, $this->_input);
 
                 //if the router or route is supposed to always return JSON, convert it.
-                if($this->_alwaysJson || $route->alwaysJson) {
+                if($this->alwaysReturnsJSON() || $route->alwaysReturnsJSON()) {
                     $output = json_encode($output);
 
                     //make sure that the JSON conversion was successful.
