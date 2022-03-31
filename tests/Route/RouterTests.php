@@ -53,7 +53,7 @@ class RouterTests extends TestCase {
 
         $this->assertInstanceOf('\ooobii\QuickRouter\Router\Router', $router, 'Failed to create router class.');
         $this->assertEquals('/', $router->root(), 'Router instantiated with incorrect default root URI.');
-        $this->assertEquals(FALSE, $router->alwaysReturnJson(), 'Router instantiated with incorrect default JSON output assertion.');
+        $this->assertEquals(FALSE, $router->alwaysReturnsJSON(), 'Router instantiated with incorrect default JSON output assertion.');
     }
 
 
@@ -63,7 +63,7 @@ class RouterTests extends TestCase {
 
         $this->assertInstanceOf('\ooobii\QuickRouter\Router\Router', $router, 'Failed to create router class with custom root.');
         $this->assertEquals('/Api', $router->root());
-        $this->assertEquals(FALSE, $router->alwaysReturnJson());
+        $this->assertEquals(FALSE, $router->alwaysReturnsJSON());
     }
 
 
@@ -73,7 +73,7 @@ class RouterTests extends TestCase {
 
         $this->assertInstanceOf('\ooobii\QuickRouter\Router\Router', $router, 'Failed to create router class.');
         $this->assertEquals('/', $router->root(), 'Router instantiated with incorrect default root URI.');
-        $this->assertEquals(FALSE, $router->alwaysReturnJson(), 'Router instantiated with incorrect default JSON output assertion.');
+        $this->assertEquals(FALSE, $router->alwaysReturnsJSON(), 'Router instantiated with incorrect default JSON output assertion.');
     }
 
 
@@ -107,13 +107,52 @@ class RouterTests extends TestCase {
 
     }
 
+
+    /** @test */
+    public function constructInHttpContextWithGoodRoute() {
+
+        //setup mock $_SERVER vars.
+        $this->SERVER_BACKUP = $_SERVER;
+        $_SERVER['REQUEST_URI'] = '/testApi/test/dump';
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+
+        try {
+
+            $router = new \ooobii\QuickRouter\Router\Router('/testApi/');
+            $this->assertInstanceOf('\ooobii\QuickRouter\Router\Router', $router, 'Failed to create router class from test controller file.');
+
+            $router->addRoute(\ooobii\QuickRouter\Types\HTTP_REQUEST_TYPE::GET, '/test/dump', function($input) {
+                return 'testSuccessful';
+            });
+            $this->assertCount(1, $router->routes(), 'Router failed to add route.');
+            $route = $router->getRoute('/test/dump');
+            $this->assertInstanceOf('\ooobii\QuickRouter\Router\Route', $route, 'Router failed locate route added to router.');
+
+            $this->assertFalse($router->isCLI(), 'Router falsely detected CLI context.');
+            $this->assertTrue($router->process(), 'Router falsely reported route handling.');
+
+        } catch(\Throwable $ex) {
+            $_SERVER = $this->SERVER_BACKUP;
+            throw ($ex);
+        } finally {
+            $_SERVER = $this->SERVER_BACKUP;
+        }
+
+
+
+        //restore $_SERVER vars.
+        $_SERVER = $this->SERVER_BACKUP;
+
+    }
+
+
     /** @test */
     public function constructAsAlwaysJson() {
         $router = new \ooobii\QuickRouter\Router\Router('/Api', TRUE);
 
         $this->assertInstanceOf('\ooobii\QuickRouter\Router\Router', $router, 'Failed to create router class with JSON output assertion.');
         $this->assertEquals('/Api', $router->root(), 'Router instantiated with incorrect root URI.');
-        $this->assertEquals(TRUE, $router->alwaysReturnJson(), 'Router instantiated with incorrect JSON output assertion.');
+        $this->assertEquals(TRUE, $router->alwaysReturnsJSON(), 'Router instantiated with incorrect JSON output assertion.');
     }
 
 
