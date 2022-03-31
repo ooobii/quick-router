@@ -11,41 +11,6 @@ use PHPUnit\Framework\TestCase;
  */
 class RouterTests extends TestCase {
 
-    public function setUp(): void {
-
-        // $this->tempFolder = sys_get_temp_dir() . '/quick-router_' . uniqid();
-        // $this->pid = NULL;
-
-        // //create temp folder for testing.
-        // if(is_dir($this->tempFolder)) rmdir($this->tempFolder);
-        // mkdir($this->tempFolder);
-
-        // //copy source to proper folder.
-        // copy('tests/testController.php', $this->tempFolder . '/index.php');
-        // system('cp -r vendor ' . $this->tempFolder . '/');
-        // copy('composer.json', $this->tempFolder . '/composer.json');
-        // copy('composer.lock', $this->tempFolder . '/composer.lock');
-
-        // //run composer update ignoring all command output
-        // system('composer update --working-dir "' . $this->tempFolder . '" > /dev/null 2>&1');
-
-    }
-
-    public function tearDown(): void {
-
-        // //kill the PID of the server.
-        // if($this->pid) {
-        //     shell_exec('kill ' . $this->pid);
-        //     $pid = NULL;
-        // }
-
-        // //remove temp folder.
-        // if(is_dir($this->tempFolder))
-        //     system('rm -rf -- ' . escapeshellarg($this->tempFolder));
-
-    }
-
-
 
     /** @test */
     public function standardConstruct() {
@@ -78,20 +43,38 @@ class RouterTests extends TestCase {
 
 
     /** @test */
-    public function constructInHttpContextWithBadRoute() {
+    public function constructAsAlwaysJson() {
+        $router = new \ooobii\QuickRouter\Router\Router('/Api', TRUE);
+
+        $this->assertInstanceOf('\ooobii\QuickRouter\Router\Router', $router, 'Failed to create router class with JSON output assertion.');
+        $this->assertEquals('/Api', $router->root(), 'Router instantiated with incorrect root URI.');
+        $this->assertEquals(TRUE, $router->alwaysReturnsJSON(), 'Router instantiated with incorrect JSON output assertion.');
+    }
+
+
+    /** @test */
+    public function httpContextWithBadRoute() {
 
         //setup mock $_SERVER vars.
         $this->SERVER_BACKUP = $_SERVER;
         $_SERVER['REQUEST_URI'] = '/';
         $_SERVER['REQUEST_METHOD'] = 'GET';
-        $_SERVER['argv'] = [0 => 'index.php', 1 => '/test/dump'];
 
         try {
 
-            include 'tests/testController.php';
-            $this->assertInstanceOf('\ooobii\QuickRouter\Router\Router', $testRouter, 'Failed to create router class from test controller file.');
-            $this->assertFalse($testRouter->process(), 'Router falsely reported route handling.');
-            $this->assertFalse($testRouter->isCLI(), 'Router falsely detected CLI context.');
+            $router = new \ooobii\QuickRouter\Router\Router('/testApi/');
+            $this->assertInstanceOf('\ooobii\QuickRouter\Router\Router', $router, 'Failed to create router class from test controller file.');
+            $this->assertEquals('', $router->inputUri(), 'Router detected incorrect input URI.');
+
+            $router->addRoute(\ooobii\QuickRouter\Types\HTTP_REQUEST_TYPE::GET, '/test/dump', function($input) {
+                return 'testSuccessful';
+            });
+            $this->assertCount(1, $router->routes(), 'Router failed to add route.');
+            $route = $router->getRoute('/test/dump');
+            $this->assertInstanceOf('\ooobii\QuickRouter\Router\Route', $route, 'Router failed locate route added to router.');
+
+            $this->assertFalse($router->isCLI(), 'Router falsely detected CLI context.');
+            $this->assertFalse($router->process(), 'Router falsely reported route handling.');
 
         } catch(\Throwable $ex) {
             $_SERVER = $this->SERVER_BACKUP;
@@ -100,16 +83,11 @@ class RouterTests extends TestCase {
             $_SERVER = $this->SERVER_BACKUP;
         }
 
-
-
-        //restore $_SERVER vars.
-        $_SERVER = $this->SERVER_BACKUP;
-
     }
 
 
     /** @test */
-    public function constructInHttpContextWithGoodRoute() {
+    public function httpContextWithGoodRoute() {
 
         //setup mock $_SERVER vars.
         $this->SERVER_BACKUP = $_SERVER;
@@ -120,9 +98,10 @@ class RouterTests extends TestCase {
 
             $router = new \ooobii\QuickRouter\Router\Router('/testApi/');
             $this->assertInstanceOf('\ooobii\QuickRouter\Router\Router', $router, 'Failed to create router class from test controller file.');
+            $this->assertEquals('/testApi/test/dump', $router->inputUri(), 'Router detected incorrect input URI.');
 
             $router->addRoute(\ooobii\QuickRouter\Types\HTTP_REQUEST_TYPE::GET, '/test/dump', function($input) {
-                return 'testSuccessful';
+                return '';
             });
             $this->assertCount(1, $router->routes(), 'Router failed to add route.');
             $route = $router->getRoute('/test/dump');
@@ -138,21 +117,102 @@ class RouterTests extends TestCase {
             $_SERVER = $this->SERVER_BACKUP;
         }
 
+    }
 
 
-        //restore $_SERVER vars.
-        $_SERVER = $this->SERVER_BACKUP;
+    /** @test */
+    public function CLIContextWithBadRoute() {
+
+        //setup mock $_SERVER vars.
+        $this->SERVER_BACKUP = $_SERVER;
+        $_SERVER['argv'] = [0 => 'index.php', 1 => '/' ];
+
+        try {
+
+            $router = new \ooobii\QuickRouter\Router\Router('/testApi/');
+            $this->assertInstanceOf('\ooobii\QuickRouter\Router\Router', $router, 'Failed to create router class from test controller file.');
+
+            $router->addRoute(\ooobii\QuickRouter\Types\HTTP_REQUEST_TYPE::GET, '/test/dump', function($input) {
+                return 'testSuccessful';
+            });
+            $this->assertCount(1, $router->routes(), 'Router failed to add route.');
+            $route = $router->getRoute('/test/dump');
+            $this->assertInstanceOf('\ooobii\QuickRouter\Router\Route', $route, 'Router failed locate route added to router.');
+
+            $this->assertTrue($router->isCLI(), 'Router falsely detected CLI context.');
+            $this->assertFalse($router->process(), 'Router falsely reported route handling.');
+
+        } catch(\Throwable $ex) {
+            $_SERVER = $this->SERVER_BACKUP;
+            throw ($ex);
+        } finally {
+            $_SERVER = $this->SERVER_BACKUP;
+        }
 
     }
 
 
     /** @test */
-    public function constructAsAlwaysJson() {
-        $router = new \ooobii\QuickRouter\Router\Router('/Api', TRUE);
+    public function CLIContextWithGoodRoute() {
 
-        $this->assertInstanceOf('\ooobii\QuickRouter\Router\Router', $router, 'Failed to create router class with JSON output assertion.');
-        $this->assertEquals('/Api', $router->root(), 'Router instantiated with incorrect root URI.');
-        $this->assertEquals(TRUE, $router->alwaysReturnsJSON(), 'Router instantiated with incorrect JSON output assertion.');
+        //setup mock $_SERVER vars.
+        $this->SERVER_BACKUP = $_SERVER;
+        $_SERVER['argv'] = [0 => 'index.php', 1 => '/testApi/test/dump' ];
+
+        try {
+
+            $router = new \ooobii\QuickRouter\Router\Router('/testApi/');
+            $this->assertInstanceOf('\ooobii\QuickRouter\Router\Router', $router, 'Failed to create router class from test controller file.');
+
+            $router->addRoute(\ooobii\QuickRouter\Types\HTTP_REQUEST_TYPE::GET, '/test/dump', function($input) {
+                return '';
+            });
+            $this->assertCount(1, $router->routes(), 'Router failed to add route.');
+            $route = $router->getRoute('/test/dump');
+            $this->assertInstanceOf('\ooobii\QuickRouter\Router\Route', $route, 'Router failed locate route added to router.');
+
+            $this->assertTrue($router->isCLI(), 'Router falsely detected CLI context.');
+            $this->assertTrue($router->process(), 'Router falsely reported route handling.');
+
+        } catch(\Throwable $ex) {
+            $_SERVER = $this->SERVER_BACKUP;
+            throw ($ex);
+        } finally {
+            $_SERVER = $this->SERVER_BACKUP;
+        }
+
+    }
+
+
+    /** @test */
+    public function CLIContextWithNoRoute() {
+
+        //setup mock $_SERVER vars.
+        $this->SERVER_BACKUP = $_SERVER;
+        $_SERVER['argv'] = [0 => 'index.php' ];
+
+        try {
+
+            $router = new \ooobii\QuickRouter\Router\Router('/testApi/');
+            $this->assertInstanceOf('\ooobii\QuickRouter\Router\Router', $router, 'Failed to create router class from test controller file.');
+
+            $router->addRoute(\ooobii\QuickRouter\Types\HTTP_REQUEST_TYPE::GET, '/', function($input) {
+                return '';
+            });
+            $this->assertCount(1, $router->routes(), 'Router failed to add route.');
+            $route = $router->getRoute('/');
+            $this->assertInstanceOf('\ooobii\QuickRouter\Router\Route', $route, 'Router failed locate route added to router.');
+
+            $this->assertTrue($router->isCLI(), 'Router falsely detected CLI context.');
+            $this->assertTrue($router->process(), 'Router falsely reported route handling.');
+
+        } catch(\Throwable $ex) {
+            $_SERVER = $this->SERVER_BACKUP;
+            throw ($ex);
+        } finally {
+            $_SERVER = $this->SERVER_BACKUP;
+        }
+
     }
 
 
