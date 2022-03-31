@@ -14,19 +14,19 @@ class Route {
      * The type of request that this route should handle.
      * @var string
      */
-    public $requestType;
+    private $_requestType;
 
     /**
      * The path that this route should handle.
      * @var string
      */
-    public $endpoint;
+    private $_endpoint;
 
     /**
      * Determines if output from this router should always be JSON.
      * @var bool
      */
-    public $alwaysJson = FALSE;
+    private $_alwaysJson = FALSE;
 
     /**
      * Stores the path to the directory that the router is being used in.
@@ -56,19 +56,19 @@ class Route {
      * @param bool $alwaysJson Determines if output from this route should always be treated as a JSON object.
      */
     public function __construct(string $type, string $endpoint, \Closure $handler, bool $alwaysJson = FALSE) {
-        $this->endpoint = $endpoint;
-        $this->_endpointParts = explode('/', $endpoint);
-        $this->requestType = $type;
-        $this->alwaysJson = $alwaysJson;
+        $this->_endpoint = $endpoint;
+        $this->_endpointParts = explode('/', ltrim($endpoint, '/'));
+        $this->_requestType = $type;
+        $this->_alwaysJson = $alwaysJson;
         $this->_handler = $handler;
 
         //store parameter part locations from the endpoint (if any).
-        $this->_hasParams = strpos($this->endpoint, '{') !== FALSE;
+        $this->_hasParams = strpos($this->_endpoint, '{') !== FALSE;
 
         if($this->_hasParams) {
 
             //break out the endpoint into parts.
-            $parts = explode('/', $this->endpoint);
+            $parts = explode('/', ltrim($this->_endpoint, '/'));
 
             //for each part, check if it is a parameter by looking for brackets.
             foreach($parts as $index => $part) {
@@ -83,40 +83,85 @@ class Route {
     }
 
     /**
-     * Signifies if the route has parameters that will be parsed from the input URL.
+     * Returns the function to be called when the route is requested.
+     * 
+     * @return string
+     * @see \ooobii\QuickRouter\Types\HTTP_REQUEST_TYPE
+     */
+    public function requestType() {
+        return $this->_requestType;
+    }
+
+    /**
+     * Returns the path that this route should handle.
+     * 
+     * @return string
+     */
+    public function endpoint() {
+        return $this->_endpoint;
+    }
+
+    /**
+     * Signifies if the output of this route's handler should always be treated as JSON.
      * 
      * @return bool
      */
-    public function hasParameters() {
+    public function alwaysReturnsJSON() {
+        return $this->_alwaysJson;
+    }
+
+    /**
+     * Signifies if this route has parameters to parse within it's URI.
+     * 
+     * @return bool 
+     */
+    public function hasUriParameters() {
         return $this->_hasParams;
     }
 
     /**
+     * Returns the names of the parameters as keys & the part index as the value.
+     * 
+     * @return array
+     */
+    public function getUriParameterIndices() {
+        return $this->_params;
+    }
+
+
+
+    /**
      * Checks the provided URL to see if it matches this route.
+     * 
      * @param string $inputUrl The URL requested by the user.
+     * @param null|string $requestType If provided, ensures the route matches the provided request type.
      * @return bool `TRUE` if this request should be processed by this route, `FALSE` otherwise.
      */
-    public function doesRouteQualify(string $inputUrl) {
+    public function doesRouteQualify(string $inputUrl, ?string $requestType = NULL) {
+
+        //this route won't qualify if the request type 
+        if($requestType !== NULL && $requestType !== $this->requestType())
+            return FALSE;
 
         //break out the input url into parts.
-        $inputUrlParts = explode('/', $inputUrl);
+        $inputUrlParts = explode('/', ltrim($inputUrl, '/'));
+
+        //if we have different number of parts, then this route does not qualify.
+        if(count($inputUrlParts) !== count($this->_endpointParts))
+            return FALSE;
 
         //make sure each of the endpoint parts for this route are in the input url.
         foreach($this->_endpointParts as $index => $part) {
 
-            //if the part is not in the input url, this route doesn't qualify.
-            if(!isset($inputUrlParts[$index]))
-                return FALSE;
-
             //if the part is not the same as the input url part, this route doesn't qualify.
-            if(!$this->_hasParams) {
-                
+            if(!$this->hasUriParameters()) {
+
                 if(strtolower($part) !== strtolower($inputUrlParts[$index]))
                     return FALSE;
 
             } else {
 
-                if(!in_array($index, $this->_params) && strtolower($part) !== strtolower($inputUrlParts[$index]))
+                if(!in_array($index, $this->getUriParameterIndices()) && strtolower($part) !== strtolower($inputUrlParts[$index]))
                     return FALSE;
 
             }
@@ -136,7 +181,7 @@ class Route {
     public function extractParametersFromUrlParts(string $inputUrl) {
 
         //if this endpoint doesn't have parameters defined, return FALSE.
-        if(!$this->_hasParams)
+        if(!$this->hasUriParameters())
             return FALSE;
 
         //if the input URL doesn't pass qualification, return FALSE.
@@ -147,14 +192,10 @@ class Route {
         $params = [];
 
         //break out the input url into parts.
-        $inputUrlParts = explode('/', $inputUrl);
+        $inputUrlParts = explode('/', ltrim($inputUrl, '/'));
 
         //check if the url has parts located for each parameter.
-        foreach($this->_params as $paramName => $paramIndex) {
-
-            //if the parameter index is not in the input url, return FALSE.
-            if(!isset($inputUrlParts[$paramIndex]))
-                return FALSE;
+        foreach($this->getUriParameterIndices() as $paramName => $paramIndex) {
 
             //if the parameter index is in the input url, store the value.
             $paramValue = $inputUrlParts[$paramIndex];
