@@ -3,7 +3,7 @@
 namespace ooobii\QuickRouter\Helpers;
 
 class SetupHtaccess {
-    
+
 
     private const TAG_START = "# BEGIN QuickRouter Config (DO NOT EDIT & KEEP AT END!) -----";
     private const TAG_END   = "# END QuickRouter Config (DO NOT EDIT & KEEP AT END!) -------";
