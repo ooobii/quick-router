@@ -3,6 +3,10 @@
          colors="true"
          stopOnFailure="false"
          cacheResult="false">
+    
+    <php>
+        <const name="PHPUNIT_TESTING" value="1"/>
+    </php>
 
     <coverage includeUncoveredFiles="true"
               processUncoveredFiles="true"
