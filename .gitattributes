@@ -1,0 +1,17 @@
+# Exclude git and vscode directories
+/.github          export-ignore
+/.git             export-ignore
+/.gitattributes   export-ignore
+/.gitignore       export-ignore
+/.vscode          export-ignore
+
+# Exclude files & directories used for testing codebase.
+/tests            export-ignore
+/phpunit.xml      export-ignore
+
+# Exclude file used for testing in Apache
+/index.php        export-ignore
+/.htaccess        export-ignore
+
+# Exclude script used for building & testing package.
+/Jenkinsfile      export-ignore
