@@ -59,10 +59,10 @@ class Router {
      * @param string $root The root that the router should start processing requests for.
      * @param bool $alwaysJson Signifies if all routes connected to the router should always be JSON-parsable.
      */
-    public function __construct($root = '/', $alwaysJson = FALSE) {
+    public function __construct($root = NULL, $alwaysJson = FALSE) {
 
-        //store if request is in CLI context.
-        $this->_isCli = php_sapi_name() === 'cli';
+        //if the root is not set, set it to the current directory
+        if (empty($root)) $root = '/';
 
         //store root URL this router should respond to.
         $this->_rootUri = $root;
@@ -70,21 +70,21 @@ class Router {
         $this->_input = $this->_parseParams();
 
         //if this is not a CLI request,
-        if(!$this->_isCli) {
+        if(!$this->isCLI()) {
 
             //use server variables to get the request type and URI.
-            $this->_inputUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+            $this->_inputUri = rtrim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH), '/');
 
         } else {
 
             //if no parameter was supplied, treat as root request.
             if(!isset($_SERVER['argv'][1])) {
-                $this->_inputUri = $this->_rootUri;
+                $this->_inputUri = rtrim($this->_rootUri, '/');
 
             } else {
 
                 //otherwise, use first CLI parameter as request.
-                $this->_inputUri = strtolower($_SERVER['argv'][1]);
+                $this->_inputUri = rtrim(strtolower($_SERVER['argv'][1]), '/');
 
             }
         }
@@ -95,6 +95,106 @@ class Router {
         }
 
     }
+
+    /**
+     * Signifies if the current request originates from a command line environment.
+     * 
+     * @return bool
+     */
+    public function isCLI() {
+        return !isset($_SERVER['REQUEST_URI']) && !isset($_SERVER['REQUEST_METHOD']);
+    }
+
+    /**
+     * Returns the root of the request URIs that this router responds to.
+     * 
+     * @return string
+     */
+    public function root() {
+        return $this->_rootUri;
+    }
+
+    /**
+     * Returns the collection of routes that are associated to this router for each HTTP request type.
+     * 
+     * @return array<\ooobii\QuickRouter\Router\Route>
+     */
+    public function routes() {
+        return $this->_routes;
+    }
+
+    /**
+     * Returns a direct reference to the route that will be handled by a particular endpoint.
+     * 
+     * @param string $endpoint The URI that the returned route will handle.
+     * @param null|string $requestType If provided, require the route returned to be assigned to the particular HTTP request type.
+     * @param bool $real 
+     *   - If set to `FALSE` (default), parameters defined in the route URI will be ignored.
+     *   - If set to `TRUE`, the provided endpoint will be used as-is.
+     * @return bool|\ooobii\QuickRouter\Router\Route
+     *   - If the provided endpoint is not associated with any route, nothing is returned.
+     *   - If the provided endpoint is associated with a route within this router, the route is returned. 
+     */
+    public function &getRoute(string $endpoint, ?string $requestType = NULL, bool $real = FALSE) {
+
+        //go through each endpoint, and check if route qualifies.
+        foreach($this->_routes as &$route) {
+
+            /** @var \ooobii\QuickRouter\Router\Route $route */
+
+            //the route must have the same request type.
+            if($requestType !== NULL && $route->requestType() !== $requestType) continue;
+
+            //if we're checking the real endpoint value
+            if($real) {
+
+                if($route->endpoint() !== $endpoint) continue;
+
+            } else {
+
+                if(!$route->doesRouteQualify($endpoint, $requestType)) continue;
+
+            }
+
+            //checks pass for current route!
+            return $route;
+
+        }
+
+        $noResult = FALSE;
+        return $noResult;
+
+    }
+
+    /**
+     * Returns the collection of routes that are associated to this router for each HTTP error code.
+     * 
+     * @return array<int,\ooobii\QuickRouter\Router\Route>
+     */
+    public function errorRoutes() {
+        return $this->_errorRoutes;
+    }
+
+    /**
+     * Returns the current request's HTTP request type.
+     * 
+     * @return string
+     * @see \ooobii\QuickRouter\Types\HTTP_REQUEST_TYPE
+     */
+    public function requestType() {
+        return $this->_requestType;
+    }
+
+    /**
+     * Signifies if all routes attached to this router should return JSON responses.
+     * 
+     * @return bool
+     */
+    public function alwaysReturnJson() {
+        return $this->_alwaysJson;
+    }
+
+
 
 
     /**
@@ -109,9 +209,12 @@ class Router {
             return FALSE;
         }
 
+        //remove root from request URI.
+        $this->_inputUri = substr($this->_inputUri, strlen($this->_rootUri));
+
         //find the routes that match this request type & URI.
         $qualifiedRoutes = array_filter($this->_routes, function(Route $route) {
-            return $route->doesRouteQualify($this->_inputUri);
+            return $route->doesRouteQualify($this->_inputUri, $this->requestType());
         });
 
         //loop through the routes and find the one that matches the current request.
@@ -120,7 +223,7 @@ class Router {
             try {
 
                 //if this route has parameters to be extracted from the input URL,
-                if($route->hasParameters()) {
+                if($route->hasUriParameters()) {
 
                     //extract the parameters from the input URL and merge them with our current input.
                     $this->_parseRouteParameters($route);
@@ -146,13 +249,14 @@ class Router {
                     echo $output;
 
                     //in a CLI context, we should print a new line so prompt isn't on the same line as output.
-                    if($this->_isCli) echo PHP_EOL;
+                    if($this->isCLI()) echo PHP_EOL;
                 }
 
             } catch(\Throwable $exception) {
 
                 //error was encountered within the handler. handle it with an error route.
-                $this->handleError(500, $exception);
+                return $this->handleError(500, $exception);
+
             }
 
             //route processed successfully
@@ -173,7 +277,7 @@ class Router {
      *   - This function accepts one argument: an array of input parameters related to the request.
      */
     public function addRoute(string $type, string $endpoint, \Closure $handler, bool $alwaysJson = FALSE) {
-        $endpoint = $this->_rootUri . $endpoint;
+        $endpoint = rtrim($endpoint, '/');
         $this->_routes[] = new \ooobii\QuickRouter\Router\Route($type, $endpoint, $handler, $alwaysJson);
     }
 
@@ -196,7 +300,7 @@ class Router {
      * @throws Exception
      */
     private function _parseParams() {
-        if(!$this->_isCli) {
+        if(!$this->isCLI()) {
             $this->_requestType = strtoupper($_SERVER['REQUEST_METHOD']);
         } else {
             $this->_requestType = HTTP_REQUEST_TYPE::GET;
@@ -266,10 +370,10 @@ class Router {
         if(isset($this->_errorRoutes[$status])) {
             $this->_errorRoutes[$status]($exception);
             http_response_code($status);
-            die;
+            return TRUE;
         }
 
-        return false;
+        return FALSE;
     }
 
 }
