@@ -201,6 +201,14 @@ class Router {
         return $this->_alwaysJson;
     }
 
+    /**
+     * Signifies if PHPUnit is running tests currently.
+     * @return bool 
+     */
+    public static function areUnitTestsRunning() {
+        return defined('PHPUNIT_TESTING');
+    }
+
 
 
 
@@ -252,7 +260,7 @@ class Router {
                 }
 
                 //print the output to the output stream.
-                if($output !== NULL) {
+                if($output !== NULL && !self::areUnitTestsRunning()) {
                     echo $output;
 
                     //in a CLI context, we should print a new line so prompt isn't on the same line as output.

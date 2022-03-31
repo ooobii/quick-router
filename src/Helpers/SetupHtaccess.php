@@ -5,10 +5,10 @@ namespace ooobii\QuickRouter\Helpers;
 class SetupHtaccess {
 
 
-    private const TAG_START = "# BEGIN QuickRouter Config (DO NOT EDIT & KEEP AT END!) -----";
-    private const TAG_END   = "# END QuickRouter Config (DO NOT EDIT & KEEP AT END!) -------";
+    public const TAG_START = "# BEGIN QuickRouter Config (DO NOT EDIT & KEEP AT END!) -----";
+    public const TAG_END   = "# END QuickRouter Config (DO NOT EDIT & KEEP AT END!) -------";
 
-    private static function getFileContents() {
+    public static function getFileContents() {
         $startTag = self::TAG_START;
         $endTag   = self::TAG_END;
 
@@ -30,18 +30,16 @@ class SetupHtaccess {
 
         //if an .htaccess file exists, we should only overwrite lines between the BEGIN and END tags.
         if (file_exists('.htaccess')) {
-            echo "Updating existing .htaccess file... ";
             self::updateHtAccessFile();
 
         } else {
 
             //if one doesn't exist, write a new .htaccess file to the project directory
-            echo "Creating new .htaccess file... ";
             file_put_contents('.htaccess', self::getFileContents());
 
         }
 
-        echo "OK!" . PHP_EOL;
+        return TRUE;
 
     }
 
@@ -63,7 +61,7 @@ class SetupHtaccess {
 
         //if both config tags are not found, we can append the config to the end of the .htaccess file.
         if($startPos === FALSE && $endPos === FALSE) {
-            echo "Writing new QuickRouter settings... ";
+
             $content .= PHP_EOL . self::getFileContents();
 
         } else {
@@ -72,8 +70,6 @@ class SetupHtaccess {
             if($startPos === FALSE || $endPos === FALSE) {
                 throw new \Exception("Unable to update .htaccess file. Config was not found in .htaccess file.");
             }
-
-            echo "Updating existing QuickRouter settings... ";
 
             //add tag length to end position.
             $endPos += strlen(self::TAG_END);
@@ -93,8 +89,6 @@ class SetupHtaccess {
 
         //overwrite the new config to the file
         file_put_contents('.htaccess', trim($content) . PHP_EOL);
-
-        
 
     }
 

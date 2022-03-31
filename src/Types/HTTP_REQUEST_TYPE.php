@@ -15,6 +15,10 @@ class HTTP_REQUEST_TYPE {
     private $_selected = self::GET;
 
     public function __construct(string $name) {
+        $name = strtoupper($name);
+        if(!in_array($name, ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'])) {
+            throw new \Exception('Invalid HTTP request type: "' . $name . '"');
+        }
         $this->_selected = $name;
     }
 
