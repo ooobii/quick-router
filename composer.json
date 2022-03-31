@@ -22,8 +22,15 @@
         ],
         "post-update-cmd": [
             "ooobii\\QuickRouter\\Helpers\\SetupHtaccess::createHtaccessFile"
-        ]
+        ],
 
+        "test": "XDEBUG_MODE=coverage ./vendor/bin/phpunit --verbose --do-not-cache-result --coverage-html tests/results/html/coverage --testdox-html tests/results/html/test/index.html",
+        "test-nocoverage": "./vendor/bin/phpunit --verbose --do-not-cache-result --testdox-html tests/results/html/test/index.html",
+        "test-debug": "XDEBUG_MODE=coverage ./vendor/bin/phpunit --verbose --debug --do-not-cache-result --coverage-html tests/results/html/coverage --testdox-html tests/results/html/test/index.html",
+        "rm-test-results": [
+            "rm -rf tests/results/html/coverage/*",
+            "rm -rf tests/results/html/test/*"
+        ]
     },
     "require": {
         "php": ">=7.3.0"
