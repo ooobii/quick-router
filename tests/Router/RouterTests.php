@@ -121,6 +121,74 @@ class RouterTests extends TestCase {
 
 
     /** @test */
+    public function httpContextWithGoodParamRoute() {
+
+        //setup mock $_SERVER vars.
+        $this->SERVER_BACKUP = $_SERVER;
+        $_SERVER['REQUEST_URI'] = '/testApi/test/doSomething';
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+
+        try {
+
+            $router = new \ooobii\QuickRouter\Router\Router('/testApi/');
+            $this->assertInstanceOf('\ooobii\QuickRouter\Router\Router', $router, 'Failed to create router class from test controller file.');
+            $this->assertEquals('/testApi/test/doSomething', $router->inputUri(), 'Router detected incorrect input URI.');
+
+            $router->addRoute(\ooobii\QuickRouter\Types\HTTP_REQUEST_TYPE::GET, '/test/{action}', function($input) {
+                return $input['action'];
+            }, TRUE);
+            $this->assertCount(1, $router->routes(), 'Router failed to add route.');
+            $route = $router->getRoute('/test/{action}');
+            $this->assertInstanceOf('\ooobii\QuickRouter\Router\Route', $route, 'Router failed locate route added to router.');
+
+            $this->assertFalse($router->isCLI(), 'Router falsely detected CLI context.');
+            $this->assertTrue($router->process(), 'Router falsely reported route handling.');
+
+        } catch(\Throwable $ex) {
+            $_SERVER = $this->SERVER_BACKUP;
+            throw ($ex);
+        } finally {
+            $_SERVER = $this->SERVER_BACKUP;
+        }
+
+    }
+
+
+    /** @test */
+    public function httpContextWithBadParamRoute() {
+
+        //setup mock $_SERVER vars.
+        $this->SERVER_BACKUP = $_SERVER;
+        $_SERVER['REQUEST_URI'] = '/testApi/test2/doSomething';
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+
+        try {
+
+            $router = new \ooobii\QuickRouter\Router\Router('/testApi/');
+            $this->assertInstanceOf('\ooobii\QuickRouter\Router\Router', $router, 'Failed to create router class from test controller file.');
+            $this->assertEquals('/testApi/test2/doSomething', $router->inputUri(), 'Router detected incorrect input URI.');
+
+            $router->addRoute(\ooobii\QuickRouter\Types\HTTP_REQUEST_TYPE::GET, '/test/{action}', function($input) {
+                return $input['action'];
+            }, TRUE);
+            $this->assertCount(1, $router->routes(), 'Router failed to add route.');
+            $route = $router->getRoute('/test/{action}');
+            $this->assertInstanceOf('\ooobii\QuickRouter\Router\Route', $route, 'Router failed locate route added to router.');
+
+            $this->assertFalse($router->isCLI(), 'Router falsely detected CLI context.');
+            $this->assertFalse($router->process(), 'Router falsely reported route handling.');
+
+        } catch(\Throwable $ex) {
+            $_SERVER = $this->SERVER_BACKUP;
+            throw ($ex);
+        } finally {
+            $_SERVER = $this->SERVER_BACKUP;
+        }
+
+    }
+
+
+    /** @test */
     public function CLIContextWithBadRoute() {
 
         //setup mock $_SERVER vars.
