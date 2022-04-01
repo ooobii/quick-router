@@ -2,7 +2,6 @@
 declare(strict_types=1);
 ini_set('xdebug.mode', "coverage");
 
-use ooobii\QuickRouter\Types\HTTP_REQUEST_TYPE;
 use PHPUnit\Framework\TestCase;
 
 /**
