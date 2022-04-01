@@ -2,7 +2,8 @@
 <phpunit bootstrap="vendor/autoload.php"
          colors="true"
          stopOnFailure="false"
-         cacheResult="false">
+         cacheResult="false"
+         verbose="true">
     
     <php>
         <const name="PHPUNIT_TESTING" value="1"/>
@@ -19,5 +20,10 @@
     <testsuite name="quick-router">
         <directory suffix="Tests.php">tests/</directory>
     </testsuite>
+
+
+    <logging>
+        <junit outputFile="tests/results/junit/results.xml"/>
+    </logging>
 
 </phpunit>
