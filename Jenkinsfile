@@ -55,7 +55,6 @@ pipeline {
             setBuildStatus('Unstable', 'UNSTABLE')
         }
         always {
-            archiveArtifacts artifacts: 'build/*.deb', fingerprint: true
             junit 'tests/results/junit/*.xml'
         }
     }
