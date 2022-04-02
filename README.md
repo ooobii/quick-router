@@ -1,5 +1,7 @@
 # Quick Router for PHP
 
+[![Build Status](https://jenkins.matthewwendel.info/job/quick-router/job/main/badge/icon)](https://jenkins.matthewwendel.info/job/quick-router/job/main/)
+
 A quick & easy way to start developing an API / web service application using PHP & Apache.
 
 ## Requirements
