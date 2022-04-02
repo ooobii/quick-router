@@ -15,15 +15,6 @@ void setBuildStatus(String message, String state) {
 pipeline {
     agent { label 'linux' }
     stages {
-        stage('Clone Repository') {
-            steps {
-                checkout([$class: 'GitSCM',
-                    branches: [[name: "${GIT_BRANCH}"]],
-                    extensions: [[$class: 'WipeWorkspace']],
-                    userRemoteConfigs: [[url: 'git@github.com:ooobii/quick-router.git']]
-                ])
-            }
-        }
         stage('Install Composer Pkgs') {
             steps {
                 sh 'composer install'
